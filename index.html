@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEIC → JPEG · Конвертер в браузере</title>
+<meta name="description" content="Бесплатный конвертер HEIC/HEIF в JPEG прямо в браузере. Файлы никуда не отправляются — вся обработка локально. Пакетный режим, ZIP-архив, настройка качества.">
+<meta name="keywords" content="heic, heif, jpeg, конвертер, converter, iphone photos, online converter">
+
+<!-- Open Graph для Telegram, Whatsapp, Twitter -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="HEIC → JPEG · Конвертер в браузере">
+<meta property="og:description" content="Конвертируй фото с iPhone в JPEG без загрузки на сервер. Пакетная обработка, ZIP-архив, тёмная тема.">
+<meta property="og:image" content="https://raw.githubusercontent.com/USERNAME/heic-converter/main/preview.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📸%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-elev: #161922;
+    --bg-elev-2: #1d2130;
+    --border: #2a2f3e;
+    --text: #e8eaed;
+    --text-dim: #8b91a3;
+    --text-muted: #5a6075;
+    --accent: #d4a574;
+    --accent-hover: #e0b585;
+    --accent-dim: rgba(212, 165, 116, 0.12);
+    --success: #6ec5a5;
+    --error: #e07a7a;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 20px;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(212, 165, 116, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(110, 197, 165, 0.04) 0%, transparent 40%);
+  }
+
+  .container { max-width: 880px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--text-dim); font-size: 14px; }
+
+  .controls {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .control-group { display: flex; align-items: center; gap: 12px; }
+  .control-group label {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  #quality {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 4px;
+    background: var(--bg-elev-2);
+    border-radius: 2px;
+    outline: none;
+  }
+  #quality::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(212, 165, 116, 0.4);
+  }
+  #quality::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  #qualityValue {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 40px;
+  }
+
+  .dropzone {
+    background: var(--bg-elev);
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 56px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 16px;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .dropzone-icon {
+    font-size: 42px;
+    margin-bottom: 14px;
+    opacity: 0.7;
+  }
+  .dropzone-text {
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .dropzone-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  #fileInput { display: none; }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  button {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  button:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  button.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  button.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .status {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-left: auto;
+    align-self: center;
+  }
+  .status strong { color: var(--accent); }
+
+  .file-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .file-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+  .file-card.done { border-color: rgba(110, 197, 165, 0.3); }
+  .file-card.error { border-color: rgba(224, 122, 122, 0.3); }
+
+  .preview {
+    aspect-ratio: 1;
+    background: var(--bg-elev-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .preview-placeholder {
+    color: var(--text-muted);
+    font-size: 32px;
+  }
+
+  .progress-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 17, 21, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--bg-elev-2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-text { font-size: 11px; color: var(--text-dim); }
+
+  .file-info {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .file-name {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 4px;
+  }
+  .file-size {
+    color: var(--text-muted);
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .size-saved { color: var(--success); }
+  .file-card.error .file-size { color: var(--error); }
+
+  .download-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-elev-2);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+    border-radius: 0;
+  }
+  .download-btn:hover { background: var(--accent-dim); }
+  .download-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
+
+  footer {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  footer a { color: var(--text-dim); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>HEIC → <span>JPEG</span></h1>
+      <p class="subtitle">Конвертация прямо в браузере. Файлы никуда не отправляются.</p>
+    </header>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>Качество JPEG:</label>
+        <input type="range" id="quality" min="60" max="100" value="90" step="5">
+        <span id="qualityValue">90%</span>
+      </div>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">⬆</div>
+      <div class="dropzone-text">Перетащи HEIC-файлы сюда или кликни для выбора</div>
+      <div class="dropzone-hint">Поддерживается .heic, .heif · множественный выбор</div>
+      <input type="file" id="fileInput" accept=".heic,.heif,image/heic,image/heif" multiple>
+    </div>
+
+    <div class="actions" id="actions" style="display:none;">
+      <button class="primary" id="downloadAll">⬇ Скачать всё ZIP-архивом</button>
+      <button id="clearAll">Очистить</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <footer>
+      Powered by <a href="https://github.com/alselawi/heic2any" target="_blank">heic2any</a> ·
+      <a href="https://stuk.github.io/jszip/" target="_blank">JSZip</a>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const actions = document.getElementById('actions');
+    const statusEl = document.getElementById('status');
+    const downloadAllBtn = document.getElementById('downloadAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const qualitySlider = document.getElementById('quality');
+    const qualityValue = document.getElementById('qualityValue');
+
+    const CONCURRENCY = 3; // одновременных конвертаций
+    const files = []; // { id, name, originalSize, blob, jpegBlob, jpegSize, status, error }
+    let nextId = 0;
+
+    qualitySlider.addEventListener('input', () => {
+      qualityValue.textContent = qualitySlider.value + '%';
+    });
+
+    // Drag & drop
+    ['dragenter', 'dragover'].forEach(ev => {
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+      });
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('drop', e => {
+      const dropped = Array.from(e.dataTransfer.files);
+      handleFiles(dropped);
+    });
+    fileInput.addEventListener('change', e => {
+      handleFiles(Array.from(e.target.files));
+      fileInput.value = ''; // чтобы можно было выбрать те же файлы снова
+    });
+
+    function handleFiles(newFiles) {
+      const heicFiles = newFiles.filter(f =>
+        /\.(heic|heif)$/i.test(f.name) ||
+        f.type === 'image/heic' ||
+        f.type === 'image/heif' ||
+        // Иногда браузер не определяет MIME → доверяем расширению
+        (f.type === '' && /\.(heic|heif)$/i.test(f.name))
+      );
+
+      if (heicFiles.length === 0) {
+        alert('Не найдено HEIC/HEIF файлов. Проверь, что выбираешь именно .heic или .heif');
+        return;
+      }
+
+      heicFiles.forEach(file => {
+        const item = {
+          id: nextId++,
+          name: file.name,
+          originalSize: file.size,
+          blob: file,
+          jpegBlob: null,
+          jpegSize: 0,
+          status: 'pending',
+          error: null,
+          card: null
+        };
+        files.push(item);
+        renderCard(item);
+      });
+
+      actions.style.display = 'flex';
+      updateStatus();
+      processQueue();
+    }
+
+    function renderCard(item) {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.dataset.id = item.id;
+      card.innerHTML = `
+        <div class="preview">
+          <div class="preview-placeholder">⬜</div>
+          <div class="progress-overlay">
+            <div class="spinner"></div>
+            <div class="progress-text">в очереди...</div>
+          </div>
+        </div>
+        <div class="file-info">
+          <div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+          <div class="file-size">
+            <span>${formatSize(item.originalSize)}</span>
+            <span class="result-size"></span>
+          </div>
+        </div>
+        <button class="download-btn" disabled>Конвертация...</button>
+      `;
+      item.card = card;
+      fileList.appendChild(card);
+    }
+
+    function setCardStatus(item, text) {
+      const txt = item.card.querySelector('.progress-text');
+      if (txt) txt.textContent = text;
+    }
+
+    async function processQueue() {
+      const pending = files.filter(f => f.status === 'pending');
+      const running = files.filter(f => f.status === 'running');
+      const slots = CONCURRENCY - running.length;
+
+      for (let i = 0; i < slots && i < pending.length; i++) {
+        convertFile(pending[i]);
+      }
+    }
+
+    async function convertFile(item) {
+      item.status = 'running';
+      setCardStatus(item, 'конвертация...');
+
+      try {
+        const quality = parseInt(qualitySlider.value) / 100;
+        const result = await heic2any({
+          blob: item.blob,
+          toType: 'image/jpeg',
+          quality: quality
+        });
+
+        // heic2any может вернуть Blob или массив Blob (если в HEIC несколько кадров)
+        const jpegBlob = Array.isArray(result) ? result[0] : result;
+        item.jpegBlob = jpegBlob;
+        item.jpegSize = jpegBlob.size;
+        item.status = 'done';
+
+        // Превью
+        const previewEl = item.card.querySelector('.preview');
+        const url = URL.createObjectURL(jpegBlob);
+        const img = document.createElement('img');
+        img.src = url;
+        img.onload = () => {
+          previewEl.innerHTML = '';
+          previewEl.appendChild(img);
+        };
+
+        // Размер
+        const resultSize = item.card.querySelector('.result-size');
+        const saved = ((1 - item.jpegSize / item.originalSize) * 100).toFixed(0);
+        resultSize.textContent = `→ ${formatSize(item.jpegSize)} (-${saved}%)`;
+        resultSize.classList.add('size-saved');
+
+        // Кнопка скачивания
+        const btn = item.card.querySelector('.download-btn');
+        btn.textContent = '⬇ Скачать JPEG';
+        btn.disabled = false;
+        btn.onclick = () => downloadSingle(item);
+
+        item.card.classList.add('done');
+      } catch (err) {
+        console.error('Ошибка конвертации', item.name, err);
+        item.status = 'error';
+        item.error = err.message || String(err);
+
+        const previewEl = item.card.querySelector('.preview');
+        previewEl.innerHTML = '<div class="preview-placeholder">✕</div>';
+
+        const resultSize = item.card.querySelector('.result-size');
+        resultSize.textContent = 'ошибка';
+
+        const btn = item.card.querySelector('.download-btn');
+        btn.textContent = 'Не удалось';
+        btn.disabled = true;
+
+        item.card.classList.add('error');
+      } finally {
+        updateStatus();
+        processQueue();
+      }
+    }
+
+    function downloadSingle(item) {
+      const url = URL.createObjectURL(item.jpegBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = item.name.replace(/\.(heic|heif)$/i, '.jpg');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    downloadAllBtn.addEventListener('click', async () => {
+      const done = files.filter(f => f.status === 'done');
+      if (done.length === 0) {
+        alert('Нет готовых файлов для архивации');
+        return;
+      }
+
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.textContent = '📦 Архивируем...';
+
+      try {
+        const zip = new JSZip();
+        done.forEach(item => {
+          const jpegName = item.name.replace(/\.(heic|heif)$/i, '.jpg');
+          zip.file(jpegName, item.jpegBlob);
+        });
+
+        const content = await zip.generateAsync({
+          type: 'blob',
+          compression: 'STORE' // JPEG уже сжат, повторная компрессия только замедлит
+        });
+
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().slice(0, 10);
+        a.download = `heic-converted-${timestamp}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (err) {
+        console.error(err);
+        alert('Ошибка создания архива: ' + err.message);
+      } finally {
+        downloadAllBtn.disabled = false;
+        downloadAllBtn.innerHTML = '⬇ Скачать всё ZIP-архивом';
+      }
+    });
+
+    clearAllBtn.addEventListener('click', () => {
+      if (files.some(f => f.status === 'running')) {
+        if (!confirm('Идёт конвертация. Точно очистить?')) return;
+      }
+      files.length = 0;
+      fileList.innerHTML = '';
+      actions.style.display = 'none';
+    });
+
+    function updateStatus() {
+      const total = files.length;
+      const done = files.filter(f => f.status === 'done').length;
+      const errors = files.filter(f => f.status === 'error').length;
+      const running = files.filter(f => f.status === 'running').length;
+
+      let parts = [];
+      parts.push(`Всего: <strong>${total}</strong>`);
+      if (done) parts.push(`готово: <strong>${done}</strong>`);
+      if (running) parts.push(`в работе: <strong>${running}</strong>`);
+      if (errors) parts.push(`ошибки: <strong>${errors}</strong>`);
+
+      statusEl.innerHTML = parts.join(' · ');
+
+      // Активность кнопки ZIP
+      downloadAllBtn.disabled = done === 0;
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' Б';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' МБ';
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+  </script>
+</body>
+</html>
