@@ -7,7 +7,7 @@
 ![Privacy](https://img.shields.io/badge/privacy-100%25-success)
 ![Made with](https://img.shields.io/badge/made%20with-vanilla%20JS-yellow)
 
-**🔗 [Открыть конвертер](https://USERNAME.github.io/heic-converter/)** ← замени `USERNAME` на свой GitHub-логин
+**🔗 [Открыть конвертер](https://denproai.github.io/heic-converter/)**
 
 ---
 
@@ -64,7 +64,7 @@ iPhone снимает фото в формате **HEIC** — он лёгкий 
 Никакой сборки не требуется — это статичный HTML.
 
 ```bash
-git clone https://github.com/USERNAME/heic-converter.git
+git clone https://github.com/DenProAI/heic-converter.git
 cd heic-converter
 # Открой index.html в браузере или запусти любой локальный сервер:
 python3 -m http.server 8000
@@ -84,3 +84,7 @@ python3 -m http.server 8000
 ## Автор
 
 Сделано в качестве утилиты для собственных задач. Если зашло — поставь ⭐
+
+- 🌍 Telegram: [@travelwden](https://t.me/travelwden) — путешествия, технологии, автоматизация
+- 📸 Instagram: [@travelwden](https://instagram.com/travelwden)
+- 💻 GitHub: [@DenProAI](https://github.com/DenProAI)
